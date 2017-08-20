@@ -15,10 +15,22 @@ class ServerThread(private val client: Client, private val list: List<Client>) :
                 if (client.isClosed)
                     break
                 val message = receiveMessage(client) ?: continue
-                list.filter { it != client && !it.isClosed && it.socket.isConnected }
-                        .forEach {
-                            sendMessage(it, client.id + ":" + message)
-                        }
+                val index = message[0]
+                when (index)
+                {
+                    '1' ->//正常消息
+                        list.filter { it != client && !it.isClosed && it.socket.isConnected }
+                                .forEach {
+                                    sendMessage(it, client.id + ":" + message.substring(1))
+                                }
+                    '2' ->//获取当前在线人员列表
+                    {
+                        var response = "{\"code\":$index,\"number\":" + list.size + ",\"people\":["
+                        list.forEachIndexed { i, client -> response += ("{\"id\":\"" + client.id + "\"}" + if (i != list.size - 1) "," else "") }
+                        response += "]}"
+                        sendMessage(client, response)
+                    }
+                }
             }
         }
         catch (e: Exception)
